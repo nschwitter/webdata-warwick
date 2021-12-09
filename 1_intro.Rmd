@@ -1,0 +1,196 @@
+---
+title: "Introduction to RMarkdown and HTML"
+author: Nicole Schwitter
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: yes
+    toc_float: true
+    toc_collapsed: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Markdown
+
+I will be using the integrated development environment [RStudio](https://www.rstudio.com/) to interact with R, and write our annotated R code using [Markdown](http://rmarkdown.rstudio.com). **Markdown** is a simple formatting syntax to generate HTML, PDF or Word documents. You can combine it with R to generate a document that includes comments, code and the the output of the code. To generate the document, just click the **Knit** button in the menu at the top. 
+
+R code is embedded in chunks like this one:
+```{r}
+1+1
+result <- 1+1+1
+summary(cars)
+```
+
+# Packages and Prerequisites
+
+If you have not done so, please install all the following packages by calling the following chunk:
+
+```{r, eval=FALSE}
+install.packages("rvest")
+install.packages("RSelenium")
+install.packages("dplyr")
+
+install.packages("httr")
+install.packages("jsonlite")
+```
+
+We will be using `rvest` and `RSelenium` for web scraping. `dplyr` helps with data manipulation. We will be using `httr` and `jsonlite` later today when we send API queries to servers. 
+
+
+# HTML
+
+Before we dive into scraping data, we cover the basic of HTML. You only need a rudimentary understanding of HTML to scrape data from the web, but the more you know, the better you get at troubleshooting errors, working with exemptions and writing flexible solutions. 
+
+## The Basics of HTML
+
+HTML is a **H**yper**T**ext **M**arkup **L**anguage. The language uses **tags** to specify character and behaviour of text. A start and an end tag typically surrounding the text they are formatting with <> symbols.
+
+Example: `<tagname>Text</tagname> `
+ 
+Knowing HTML tags, you can also write your own website! Also, take a look at simplewebsite.html. I used all of the following HTML snippets in that document, so you can see how such HTML elements are being displayed in your browser. 
+
+[W3Schools](https://www.w3schools.com) is a great resource for learning HTML.
+
+## Structure of a web page
+
+Web pages follow a standardised structure. There are clear specifications defining what is correct and what is not. Web pages have to be written in a standardised way so that browsers can render them correctly (at least more or less: browsers are quite smart in working with sloppy HTML).  
+
+Understanding the structure of web pages does not only matter for browsers and web developers, but also for us when we want to extract specific pieces of information from a web page. We can tell R exactly which element of this structure we want to collect. 
+
+Web pages have a head and a body. HTML documents consist of a tree of elements and text. Most often, we are interested in what is inside the **body**, that is, the substantial content of a webpage.
+
+
+``` 
+<html> 
+    <head> 
+        <title>Title of your web page</title> 
+    </head> 
+    <body> 
+    HTML web page content 
+    </body> 
+</html> 
+```
+
+## Some Basic HTML Tags
+
+Inside the body of a HTML page, tags can specify the elements to be displayed. 
+
+Examples:
+
+`<h1>This is a heading.</h1>`
+
+`<h2>This is a smaller heading.</h2>`
+
+`<p>This is a paragraph.</p><p>And this is the next.</p>`
+
+`<div> This is a section. Many HTML-Tags can also be nested. <p> This is a paragraph within a div section. </p></div>` 
+
+There are unordered (ul) and ordered (ol) lists which are defined as follows:
+
+```
+<ul>
+  <li>This is the first item of an unordered list. </li> 
+  <li> This is the second item.</li>
+</ul>
+```
+
+Like in most other script/programming languages, there can be hidden comments in HTML pages. 
+
+Example: `<!-- This is a comment. It will not be visible when the webpage is displayed in a browser. -->`
+
+## HTML Attributes
+HTML attributes provide additional information about HTML elements. All elements can have none or multiple attributes. Attributes are included in the starting tag and come as name-value-pairs (attributename="attributevalue"). 
+
+Example: `<title attribute="x"> Title </title>`
+
+
+### Common attributes
+
+We often need to use attributes to specify what exactly we want to scrape, so we will cover some common attributes in the following. For an overview, check [W3Schools](https://www.w3schools.com/html/html_attributes.asp).
+
+**Links**
+
+Hyperlinks are a common element on website: Linking to other websites is one of the core features of the web. Text content is turned into a link with the `<a>` tag (*anchor*), and the link address is specified as `href` attribute (*hyperreference*).
+
+Example: `This is text <a href="https://www.scrapethissite.com/pages/simple/">with a link</a>.`
+
+**IDs**
+
+IDs are a special attribute used to specify a unique identifier for an HTML element. The value of the id attribute must be unique within the HTML document. 
+
+Example: `<p id="instructornameparagraph">Nicole Schwitter<\p>`
+
+**Classes**
+
+Classes are another special case of attributes used to specify a class for an HTML element. Multiple HTML elements can share the same class. We often encounter classes because they are frequently used for consistent formatting of similar content. 
+
+Example: `<div class="container">This is the text within the div of class container.</div> `
+
+
+## How do we select the elements we want? CSS selectors and XPath
+
+Why do tags and attributes matter? We use them to access specific elements! In many cases, we might want to extract all links on a webpage, or all paragraphs, or all elements with a specific class, or the one element with a specific ID. There are two main ways to select elements: CSS selectors and XPath. We will mostly cover and use CSS selectors in this workshop. 
+
+**XPath**
+
+XPath stands for XML Path Language; it uses a path like syntax to identify and navigate nodes in an XML/(X)HTML document. XPath has a steep learning curve, so  we will not go into more detail. You can read more about XPath [here](https://www.w3schools.com/xml/xpath_intro.asp). In the end, it is a matter of preference whether you want to use XPath or CSS selectors.
+
+**CSS Selectors**
+
+In web development, CSS selectors are used to select the content one wants to style - to assign a specific font colour, size, etc. to one specific element or a group of elements. We are not assigning any styles to HTML elements, but we will select elements to retrieve their content. 
+
+CSS selectors are a *pattern-description*. In their most basic form, selectors work on HTML tags. To name a few basic selectors:
+
+- Type selector
+  - element
+  - If you write the name of a tag (without the brackets), the CSS selector will select all elements with that tag. 
+- ID selector
+  - #id
+  - To access an element with a specific ID, we prefix the ID value with a `#`. 
+- Class selector
+  - .class
+  - For classes, we prefix the class name with `.`. 
+- Universal selector
+  - Using the star-symbol, `*`, selects all tags; it matches everything. 
+- Attribute selector
+  - [attribute] or [attribute=value]
+  - Matches an element containing a given attribute (with a given value). 
+  - Attribute selectors can become more complex when you want to add additional restrictions. For example, you can also only match elements with an attribute starting with a given value, containing a given value, or ending with a given value.
+
+CSS selectors can be further specified when they are combined. For example, you can select all elements A inside elements B by specifying `elementA elementB`. Selecting all elements A and all elements B is done by specifying `elementA, elementB`. For a list of CSS Selectors, check out [this collection](https://www.w3schools.com/cssref/css_selectors.asp) and if you want to practice CSS Selectors in a fun way, play [CSS Diner](https://flukeout.github.io/).
+
+
+### CSS Selectors in practice: Selector Gadget
+Understanding HTML helps when scraping the web, but there are tools to make our life easier. We can skim through the raw HTML source code of a website looking for possible tags and attributes (and sometimes, that is what we need to do), but ***SelectorGadget*** is a very useful tool to start with. It is an open source JavaScript bookmarklet that allows you to interactively figure out what CSS selector you need to extract part of the page.
+
+Check out its [webpage](https://selectorgadget.com/). [If you use Chrome, you can just install SelectorGadget in your browser and use SelectorGadget as a browser extension](https://chrome.google.com/webstore/detail/selectorgadget/mhjhnkcfbdhnjickkkdbjoemdmbfginb). If you use a different browser, drag this link into your [bookmark bar and click on it when needed](javascript:(function(){var%20s=document.createElement('div');s.innerHTML='Loading...';s.style.color='black';s.style.padding='20px';s.style.position='fixed';s.style.zIndex='9999';s.style.fontSize='3.0em';s.style.border='2px%20solid%20black';s.style.right='40px';s.style.top='40px';s.setAttribute('class','selector_gadget_loading');s.style.background='white';document.body.appendChild(s);s=document.createElement('script');s.setAttribute('type','text/javascript');s.setAttribute('src','https://dv0akt2986vzh.cloudfront.net/unstable/lib/selectorgadget.js');document.body.appendChild(s);})();).
+
+To use SelectorGadget, you click on the element that you want to select and iteratively select and de-select elements. SelectorGadget will make a guess at what CSS Selector you might want. If you want to get an impression of XPath, click on the *XPath* button of SelectorGadget to see the corresponding XPath to a CSS selector. 
+
+
+Let's try it out! First, we will look at the source code of some websites:
+
+
+1. https://www.spacejam.com/1996/
+2. https://en.wikipedia.org/wiki/University_of_Warwick
+
+Now we will try to find some CSS selectors for the following tasks:
+
+1. We want to collect all links on the SpaceJam main page.
+2. We want to collect the motto in English of the University of Warwick. 
+
+
+# HTML/CSS Exercises
+
+1. Check the source code of the following websites:
+  + https://www.imdb.com/title/tt0117705/ 
+  + https://warwick.ac.uk/fac/cross_fac/cim/
+
+2. You want to collect the following things - how would you go about this? You might want to click around the websites and not only stay on the main page. 
+  + You want to collect the cast of SpaceJam.
+  + You want to collect user reviews about SpaceJam.
+  + The name and email addresses of all people at CIM.
+  + Only the name of all people at CIM. 

@@ -1,0 +1,124 @@
+---
+title: "Basic Web Scraping"
+author: Nicole Schwitter
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: yes
+    toc_float: true
+    toc_collapsed: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Scraping static pages
+We have learnt what web pages look like and how elements can be selected - now, how do we actually get that information into R?
+
+## Parsing HTML - Creating a list of all countries in the world
+
+We start with something simple: reading web data into R. Our goal is to create a list of all country names and get some details about the countries. We will be using the following web page for this: [https://www.scrapethissite.com/pages/simple/](https://www.scrapethissite.com/pages/simple/). It is a web page which has specifically been made to practice scraping and is kept simple and consistent.  
+
+1. First, take a look at the website in your browser. 
+2. Take a look at the source code of the site in your browser. How do we get this information into R?
+
+We could copy the source code into a text document and load it into R. However, what we want to do is to get it directly.
+
+We first need to load in the package `rvest` which we use for scraping. We also load in `dplyr` for some additional data manipulation functions.
+
+```{r}
+library(rvest)
+library(dplyr)
+```
+
+Next, we can read the page into R. To do that, we need to tell R its URL which we first save into (https://www.scrapethissite.com/pages/simple/) into the new object `url`. Next we parse the web page. We use the function `read_html()`.
+
+```{r}
+url <- "https://www.scrapethissite.com/pages/simple/"
+countries_website <- read_html(url)
+```
+
+
+Congratulations, you scraped your first website! `countries_website` is a list containing the entire document, including the HTML formatting.
+
+Everything is there now, even lots of things we generally do not want to collect like scripts that were loaded in the background of the website. We can use the function `html_text()` to extract just the web page text.
+
+```{r}
+text <- html_text(countries_website)
+text
+```
+
+Take a look at the object `text`. Can you still find the different countries and their population? How can we go on to extract the details of the countries?
+
+
+## Extracting elements
+The  method `html_elements()` allows the selection of specific elements of the HTML code. The documentation of the `html_elements()`command reveals that we need CSS selectors or XPath expressions to specify what we want to select. 
+
+What we want to select in the next step is the names of all countries. You can use SelectorGadget to find the correct CSS selector. We assign the names to the new object `selected_elements` and then inspect the results.
+
+```{r}
+selected_elements<-html_elements(countries_website,".country-name")
+selected_elements
+```
+
+This already looks more structured and we have different nodes in our new element `selected_elements` - but we should get rid of the HTML tags. We can achieve this with the `html_text()` command.
+
+```{r}
+countries <- html_text(selected_elements)
+head(countries)
+```
+
+
+We are almost there. We have 250 elements and we got rid of all HTML tags. We just still have some pre-processing to do. Pre-processing your collected data is an important step, particularly with web-scraped text data which tends to be messy as it is not primarily written for data analysis. What we want to do in the next step is to remove leading and trailing white spaces.  We use `twimws()` to do so. 
+
+```{r}
+countries <- trimws(countries)
+head(countries)
+```
+
+There we are! With a list of all names. What we want to do next is get some more information and create a data frame. That's your turn!
+
+
+# Scraping Exercises I
+1. Create a data frame with different columns for country name, capital name, population and  area size. 
+
+
+## Tables
+
+You have data on all countries of the world, congratulations! However, we do not know much about the validity and reliability of the data we scraped. Let us collect data on countries from a second source, and learn how to collect data from tables on the go. 
+
+We will use [Wikipedia's list of countries (United Nations)](https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)). We can apply the `html_table()` command to read in all tables in a document and convert them into a list of data frames. 
+
+
+```{r}
+url_wiki <- "https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
+wiki_webpage <- read_html(url_wiki)
+tables <- html_table(wiki_webpage)
+```
+
+`tables` is a list of data frames and we can extract specific elements using two squared brackets (the way list elements are accessed). The information we are interested in is stored in the first element of `tables`. 
+
+
+```{r}
+countries_wiki <- tables[[1]]
+```
+
+We could have also used CSS selectors to select only this element in the first place instead of reading in all tables:
+
+```{r}
+countries_wiki2<-html_table(html_element(wiki_webpage,".wikitable"))
+```
+
+
+
+# Scraping Exercises II 
+We have looked at the movie [SpaceJam on IMDB](https://www.imdb.com/title/tt0117705/) before. Now, we actually want to collect the information we looked at before.
+
+1. Collect the cast of SpaceJam.
+2. Collect the first 25 reviews about SpaceJam. 
+
+Note we are only trying to collect the first 25 reviews. Collecting more becomes more complex: The user reviews site is not a static but a dynamic site. To see more reviews, we need to click the ***load more***-button. We will cover this in the next section. 
+
+
+
