@@ -1,0 +1,289 @@
+---
+title: "Advanced Web Scraping (with solutions)"
+author: Nicole Schwitter
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: yes
+    toc_float: true
+    toc_collapsed: true
+---
+
+
+# Automation
+In the previous worksheet, we have used the `rvest` package and some of its basic functions. We have used it two scrape two different pages. However, most of the time, we do not want to collect information of just one single page, but multiple pages from the same domain. For example, we want to collect all newspaper articles in a certain category from an online newspaper, we want to extract all speeches of American presidents, we want to download all documents in an archive, or we want to collect not only the first 25 SpaceJam reviews, but all of them. 
+
+In this worksheet, we will cover how to tackle these issues: We will look at how to extract and automatically follow links of a web page and how to deal with dynamic pages. 
+
+A quick note first: Automation is not always necessary or the fastest way to go. If you want to collect all newspaper articles in a certain category and there are only three articles in the category, it is probably faster to click on each link manually and copy the new path. [When is it worth the time to automate? Well...](https://xkcd.com/1205/)
+
+## Extracting links from webpages
+Using CSS selectors, we have already extracted specific information from a webpage by specifying what kind of element we want. Extracting links goes one step deeper, because hyperlinks are an *attribute* of the text. This means they are not directly visible on the page (as elements), but they are embedded within an element. 
+
+Example: `This is text <a href="https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)">with a link to Wikipedia</a>.`
+
+*href* (hyper reference) is the attribute of the *a*-element and contains the link which we want to follow and extract. To get the attribute of an element, we need the `html_attr()` command of `rvest`. `html_attr()` can retrieve the value of any attribute of an element. If you only want to extract a specific attribute like the hyper reference, you need to pass the name of the attribute to the function; otherwise, `html_attr()` will extract all attributes. A hyper reference is an attribute of an individual HTML tag, not an attribute of an entire page. We thus need to apply the `html_attr()` on elements that we are selecting first.  
+
+We will now try this on the [Wikipedia list of countries](https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)).We load the libraries again.
+
+```{r}
+library(rvest)
+library(dplyr)
+```
+
+We then read in the website.  
+
+```{r}
+url_wiki <- "https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
+countries_website <- read_html(url_wiki)
+```
+
+We will now extract some links. We will look up the selector of the country/area names and extract the links to all country pages, saving it to the object `href_countries`.
+
+```{r}
+href_countries <- html_attr(html_elements(countries_website, ".wikitable .datasortkey a"), "href")
+
+head(href_countries)
+```
+
+Small excursus: If you are more familiar with R and the tidyverse, you might also want to use pipes to achieve the same thing in fewer lines (and with piping instead of nesting) like this. Both approaches work the same and are functional, so do whatever you prefer. 
+
+```{r}
+countries_website %>% html_elements(".wikitable .datasortkey a") %>% html_attr("href") %>% head()
+```
+
+The links we receive are relative links, defined within the directory structure of the webpage. We cannot copy the links and open them in a web browser because we are missing the ***base URL*** to Wikipedia. To find out what specific (part of an) URL you need to add back to the collected URLs, it always makes sense to go back to your browser and check the structure of the URLs manually. Clicking on a few countries, you will notice that all URLs to articles on Wikipedia follow the same structure. What's missing from our URLs collected in the element `href_countries` is the base domain: `https://en.wikipedia.org`. We need to add the base URL so we can work with the links. To do that, we use the function `paste()` which concatenates different vectors. Doing this, we can complete the paths of the URLs we scraped.
+
+```{r}
+baseurl <- "https://en.wikipedia.org"
+allurls<-paste(baseurl, href_countries, sep="") #you can also use paste0()
+head(allurls)
+```
+
+Well done - we now have a list of URLs which will lead us to the Wikipedia articles of all countries! Now, we want to learn more about these countries. 
+
+Before we will continue with our URLs, we will reduce them. We currently have a list of 231 countries. While this is complete, we do not want to bombard Wikipedia with that many requests later on. So for learning purposes, we will reduce the list of URLs which we will scrape. We will take every 13th element. This way, we will end up with around 20 countries to scrape with a varying population size (the countries are sorted by population size).
+
+```{r}
+urls<-allurls[seq(1,length(allurls),13)]
+urls
+```
+
+
+## Learning more about the countries: Collecting the anthem
+We now have a list of web pages that we want to scrape. Before we tackle the task of collecting information on all countries, we want to collect information on *one* country. We can then re-use this code and insert it into a loop to loop over the whole list of countries. 
+
+What we want to collect in the following is the *anthem* of all countries. This will require us to apply what we have used in the previous sections. We will parse the first country page and extract the anthem of it. 
+
+```{r}
+page <- read_html(urls[1])
+anthem <- html_text(html_elements(page, ".anthem a"))
+```
+
+It works - we now know the anthem of China! We have collected the anthem of China, but this is not enough: We want the anthems of all countries. We have different options on how to run the same chunk of code across different units. 
+
+The most straight-forward way is using a `for`-loop. An often faster way is to use `apply()`, but the syntax of `apply()` takes some getting used to and it depends on the size of your dataset whether the advantages in speed and efficiency are notable.
+
+The structure of a `for`-loop looks as follows: `for (i in VECTOR){ do something with i }`. In each iteration, `i` takes on a different value of the vector. `i` does not need to be called `i`, it can be named anything. 
+
+```{r}
+for (i in 1:10){
+	print(i)
+}
+
+for (i_am_a_number in -1:-10){
+	print(i_am_a_number)
+}
+```
+
+We can now employ a for-loop on our country example. We need to find a way to *loop* over our list of URLs, parsing one after the other and then reading out the anthems.
+
+We will save all anthems in the list object `anthem` which we create at the start, and then loop over our list. In the for-loop, we extract the information the way we did it before when we collected the anthem of China except that we now make use of `i`. 
+
+```{r, warning=FALSE, eval=FALSE}
+anthems <- character(0)
+
+for(i in 1:length(urls)){
+  page <- read_html(urls[i])
+  anthems[i] <- html_text(html_elements(page, ".anthem a"))
+}
+anthems
+```
+
+We run into an error when `i=15`! Which URL is that?
+
+```{r, warning=FALSE}
+urls[[15]]
+```
+
+The error occurs when we try to scrape French Guiana. What does the error message tell us?
+
+R is saying that the "replacement has length zero". Let us track down that error. We tried to scrape the anthem element, but something is not working: 
+
+```{r, warning=FALSE}
+page <- read_html(urls[15])
+html_text(html_elements(page, ".anthem a"))
+```
+
+There seems to be a problem with the anthem - nothing is being extracted! Why is that? Let's check the [Wikipedia article for French Guiana](https://en.wikipedia.org//wiki/French_Guiana) manually to see what is going on.
+As you can see in the browser, there is no anthem element there. Settlements on Wikipedia do not have an object with the anthem class. This is another usual problem with web-scraping: Some pages have information that other, similar pages do not or at least not in the same way. We need to deal with such inconsistencies.
+
+A simple way to deal with this is to skip pages which do not have an HTML element of class anthem. We use an `if-else` expression to do that. We include this expression in the loop. We will first check whether anything is being extracted when we are trying to scrape the anthem. If the element is empty, we assign `NA` to the anthem (if-clause). In the other case (else-clause), we will extract the anthem the way we specified before.
+
+```{r, warning=FALSE}
+
+anthems <- character(0)
+
+for(i in 1:length(urls)){
+  page <- read_html(urls[i])
+  if (length(html_text(html_elements(page, ".anthem a")))==0){
+    anthems[i] <- NA
+  }
+  else{
+    anthems[i] <- html_text(html_elements(page, ".anthem a"))
+  }
+}
+anthems
+```
+
+Success - we got the anthems using a for-loop! two values are `NA`, meaning those countries are lacking information about an anthem on Wikipedia (to be more precise: they are lacking an `.anthem a` element). 
+
+The more you learn to use loops (as well as functions and apply commands for more advanced use), the easier web scraping will become. Scraping is just a small step in whole process of dealing with your data, so if you improve your programming skills in R - which is fun and rewarding in itself - you will also get better at scraping in R.
+
+There are other ways to loop over the pages. They might be more flexible, faster, and/or better legible. For example, you could define a function and then stick it into your `for`-loop. This is useful if you need to use the code of getting the anthem multiple times in multiple different places.
+
+```{r, warning=FALSE}
+getanthem <- function(thisurl){
+  page <- read_html(thisurl)
+  if (length(html_text(html_elements(page, ".anthem a")))==0){
+    anthem <- NA
+  }
+  else{
+    anthem <- html_text(html_elements(page, ".anthem a"))
+  }
+  return(anthem)
+}
+
+anthems <- character(0)
+
+for(i in 1:length(urls)){
+  anthems[i] <- getanthem(urls[i])
+}
+anthems
+```
+
+
+Instead of sticking the function into a for-loop, you can use it within an `apply()`-function.
+
+```{r, warning=FALSE}
+anthems <- sapply(urls, FUN=getanthem)
+anthems
+```
+
+Note we are using `sapply()`, one function from the `apply`-family. While the standard `apply()`-function works on anything that has dimensions in R (such as a matrix or data frame), `sapply()` can also be used on our list. 
+
+As you see, the object `anthems` is a list of name-value pairs. The name is the URL of the the country Wikipedia article, the value is the anthem we have scraped. 
+
+**The logic behind scraping multiple pages**
+Collecting data from multiple pages can often become a little bit of detective work. In the previous case, we could scrape all links from the first article which was a list of countries - we had an overview over all countries. In other cases, there might be a *view all*-button which allows us to display all information on one page so that we do not even need to loop through multiple pages. In other cases, we need to find some regularity in URLs.  
+
+In any case, we need to inspect the URL structure of pages and subpages. Finding this regularity is an important skill. For example, how would you go about...
+
+1. ... collecting [White House Briefing Statements](https://www.whitehouse.gov/briefings-statements/)?
+2. ... collecting [Tesco Cheddar Cheese](https://www.tesco.com/groceries/en-GB/shop/fresh-food/cheese/cheddar-cheese)? Extra: Cheddar Cheese of the brand *Tesco organic*? 
+
+Sometimes, the URL does not change. Sometimes, there is no logic, but there is a dynamics. We will deal with this later. 
+
+# Automation Exercises
+Now, let us move back to R. We stick with our [List of countries](https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations). What we did before was collecting all countries and their anthem. In the following exercise, collect all UN subregions and their Wikipedia content (the information in the *p*-tags). Your steps are the following:
+1. Collect the URL to all subregions.
+2. Make sure each URL is only once in your list - have a look at the function `unique()`.
+3. Follow the URL to all subregions.
+4. Extract the paragraphs of the Wikipedia articles 
+
+```{r, warning=FALSE}
+#SOLUTION
+url <- "https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
+countries_website <- read_html(url)
+
+href_subregion <- html_attr(html_elements(countries_website, "td:nth-child(3) a"), "href")
+href_subregion
+href_subregion <- unique(href_subregion)
+
+baseurl <- "https://en.wikipedia.org"
+allurls<-paste0(baseurl,href_subregion)
+
+head(allurls)
+allurls <- unique(allurls)
+
+content <- character(0)
+
+for(i in 1:length(allurls)){
+  page <- read_html(allurls[i])
+  content[i] <- html_text(html_elements(page, "p"))
+}
+content
+
+```
+
+
+#Dynamic Pages and RSelenium
+
+In the previous worksheet, we collected user reviews of SpaceJam. However, we only collected the first 25 reviews. We then needed to click the ***load more***-button to see more reviews. The URL of the site does not change and there is no option to view all reviews on a single page. What do we do now? We need to automate the act of clicking the button!
+
+We do that using the package `RSelenium`. Selenium allows driving a web browser natively the way a user would.
+
+Doing that takes a little setup work first. First, we need to download binaries, start the driver and get the client object. We will open a `firefox` browser. If you use another browser, you can replace the value (`browser = c("chrome", "firefox", "phantomjs", "internet explorer")`). The port identifies your browser. You cannot open multiple instances on the same port. If you get the error message that a port is already in use, just change the port number. 
+
+```{r}
+library(RSelenium)
+driver <- rsDriver(browser = "firefox", port = 4445L)
+browser <- driver$client
+```
+
+A new browser window opened up! You will now navigate it remotely. We will tell our browser to navigate to the page of user reviews for SpaceJam. We are directly telling our browser what to do. 
+
+```{r}
+browser$navigate("https://www.imdb.com/title/tt0117705/reviews")
+```
+
+The browser opened the website! We now want to tell the browser to click on the ***load more*** button. We do this by telling our browser to find the element and then to click on it. To find and element, we use the function `findElement()`. Again, we use CSS selectors to tell our browser that we are looking for the load more button. Once we find the load button, we assign it to the object `load_button`. We then click on it and wait 2 seconds so that the elements have some time to load using `Sys.sleep()`. Depending on the speed of your internet connection and the complexity of the website you are working with, you might want to wait longer than 2 seconds. 
+
+```{r}
+load_button <- browser$findElement(using = "css selector", "#load-more-trigger")
+load_button$clickElement()
+Sys.sleep(2) # Wait for elements to load
+```
+
+It is a little bit like magic: The browser clicked the button! We need to repeat this now. We know that 284 reviews have been written and 25 are displayed per page. Thus, there are 12 pages with information. We need to click the button 10 more times and can do so in a simple loop. Click on the browser and watch the magic happen!
+
+```{r}
+for (i in 1:10){
+  load_button <- browser$findElement(using = "css selector", "#load-more-trigger")
+  load_button$clickElement()
+  Sys.sleep(2)
+}
+```
+
+Now, all reviews are visible! Let us get to the HTML. We cannot use `rvest` right now, because we need to get the HTML from the currently displayed version that `RSelenium` navigated us to. `RSelenium` also has a function to get the HTML code of a site, `getPageSource()`. We use this function and save it in `reviewdata`.
+
+```{r}
+reviewdata <- browser$getPageSource()
+```
+
+Using `getPageSource()`, the source code is saved as a list. We extract the first element of the list and can then continue with the methods we know from `rvest`.
+
+```{r}
+reviewdata <- reviewdata[[1]]
+
+spacejamrevhtml_all <- read_html(reviewdata)
+reviews_all <-html_text(html_elements(spacejamrevhtml_all, ".review-container"))
+reviews_all <- trimws(reviews_all)
+```
+
+There you go - we collected all reviews!
+
+
+# Browser Automation Exercises
+1. Collect all user reviews for your favourite movie!
+
