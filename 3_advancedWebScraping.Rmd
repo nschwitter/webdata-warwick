@@ -77,7 +77,7 @@ What we want to collect in the following is the *anthem* of all countries. This 
 
 ```{r}
 page <- read_html(urls[1])
-anthem <- html_text(html_nodes(page, ".anthem a"))
+anthem <- html_text(html_elements(page, ".anthem a"))
 ```
 
 It works - we now know the anthem of China! We have collected the anthem of China, but this is not enough: We want the anthems of all countries. We have different options on how to run the same chunk of code across different units. 
@@ -105,7 +105,7 @@ anthems <- character(0)
 
 for(i in 1:length(urls)){
   page <- read_html(urls[i])
-  anthems[i] <- html_text(html_nodes(page, ".anthem a"))
+  anthems[i] <- html_text(html_elements(page, ".anthem a"))
 }
 anthems
 ```
@@ -122,7 +122,7 @@ R is saying that the "replacement has length zero". Let us track down that error
 
 ```{r, warning=FALSE}
 page <- read_html(urls[15])
-html_text(html_nodes(page, ".anthem a"))
+html_text(html_elements(page, ".anthem a"))
 ```
 
 There seems to be a problem with the anthem - nothing is being extracted! Why is that? Let's check the [Wikipedia article for French Guiana](https://en.wikipedia.org//wiki/French_Guiana) manually to see what is going on.
@@ -136,11 +136,11 @@ anthems <- character(0)
 
 for(i in 1:length(urls)){
   page <- read_html(urls[i])
-  if (length(html_text(html_nodes(page, ".anthem a")))==0){
+  if (length(html_text(html_elements(page, ".anthem a")))==0){
     anthems[i] <- NA
   }
   else{
-    anthems[i] <- html_text(html_nodes(page, ".anthem a"))
+    anthems[i] <- html_text(html_elements(page, ".anthem a"))
   }
 }
 anthems
@@ -155,11 +155,11 @@ There are other ways to loop over the pages. They might be more flexible, faster
 ```{r, warning=FALSE}
 getanthem <- function(thisurl){
   page <- read_html(thisurl)
-  if (length(html_text(html_nodes(page, ".anthem a")))==0){
+  if (length(html_text(html_elements(page, ".anthem a")))==0){
     anthem <- NA
   }
   else{
-    anthem <- html_text(html_nodes(page, ".anthem a"))
+    anthem <- html_text(html_elements(page, ".anthem a"))
   }
   return(anthem)
 }

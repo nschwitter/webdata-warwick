@@ -70,7 +70,7 @@ head(countries)
 ```
 
 
-We are almost there. We have 250 elements and we got rid of all HTML tags. We just still have some pre-processing to do. Pre-processing your collected data is an important step, particularly with web-scraped text data which tends to be messy as it is not primarily written for data analysis. What we want to do in the next step is to remove leading and trailing white spaces.  We use `twimws()` to do so. 
+We are almost there. We have 250 elements and we got rid of all HTML tags. We just still have some pre-processing to do. Pre-processing your collected data is an important step, particularly with web-scraped text data which tends to be messy as it is not primarily written for data analysis. What we want to do in the next step is to remove leading and trailing white spaces.  We use `trimws()` to do so. 
 
 ```{r}
 countries <- trimws(countries)
@@ -83,6 +83,20 @@ There we are! With a list of all names. What we want to do next is get some more
 # Scraping Exercises I
 1. Create a data frame with different columns for country name, capital name, population and  area size. 
 
+```{r}
+countries <- trimws(countries)
+capitals <- html_text(html_elements(countries_website,".country-capital"))
+population <- html_text(html_elements(countries_website,".country-population"))
+area <- trimws(html_text(html_elements(countries_website,".country-area")))
+
+countrydf <- data.frame(countries=countries,
+                        capitals=capitals,
+                        population=population,
+                        area=area)
+  
+  
+head(countrydf)
+```
 
 ## Tables
 
@@ -119,6 +133,4 @@ We have looked at the movie [SpaceJam on IMDB](https://www.imdb.com/title/tt0117
 2. Collect the first 25 reviews about SpaceJam. 
 
 Note we are only trying to collect the first 25 reviews. Collecting more becomes more complex: The user reviews site is not a static but a dynamic site. To see more reviews, we need to click the ***load more***-button. We will cover this in the next section. 
-
-
 
