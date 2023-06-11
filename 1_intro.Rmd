@@ -15,12 +15,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # R Markdown
 
-I will be using the integrated development environment [RStudio](https://www.rstudio.com/) to interact with R, and write our annotated R code using [Markdown](http://rmarkdown.rstudio.com). **Markdown** is a simple formatting syntax to generate HTML, PDF or Word documents. You can combine it with R to generate a document that includes comments, code and the the output of the code. To generate the document, just click the **Knit** button in the menu at the top. 
+We will be using the integrated development environment [RStudio](https://www.rstudio.com/) to interact with R, and I wrote our annotated R code using [Markdown](http://rmarkdown.rstudio.com). **Markdown** is a simple formatting syntax to generate HTML, PDF, or Word documents. You can combine it with R to generate a document that includes comments, code, and the the output of the code. To generate the document, just click the **Knit** button in the menu at the top. 
 
 R code is embedded in chunks like this one:
 ```{r}
 1+1
 result <- 1+1+1
+print(result)
 summary(cars)
 ```
 
@@ -42,15 +43,15 @@ We will be using `rvest` and `RSelenium` for web scraping. `dplyr` helps with da
 
 # HTML
 
-Before we dive into scraping data, we cover the basic of HTML. You only need a rudimentary understanding of HTML to scrape data from the web, but the more you know, the better you get at troubleshooting errors, working with exemptions and writing flexible solutions. 
+Before we dive into data scraping, we cover some of the HTML basics. You only need a rudimentary understanding of HTML to scrape data from the web, but the more you know, the better you get at troubleshooting errors, working with exemptions, and writing more flexible and robust solutions. 
 
 ## The Basics of HTML
 
-HTML is a **H**yper**T**ext **M**arkup **L**anguage. The language uses **tags** to specify character and behaviour of text. A start and an end tag typically surrounding the text they are formatting with <> symbols.
+HTML is a **H**yper**T**ext **M**arkup **L**anguage. The language uses **tags** to specify character and behaviour of text. A start and an end tag typically surround the text. they are formatted with <> symbols.
 
 Example: `<tagname>Text</tagname> `
  
-Knowing HTML tags, you can also write your own website! Also, take a look at simplewebsite.html. I used all of the following HTML snippets in that document, so you can see how such HTML elements are being displayed in your browser. 
+Knowing HTML tags, you can also write your own website! Have a look at simplewebsite.html. I used all of the following HTML snippets in that document, so you can see how such HTML elements are being displayed in your browser. 
 
 [W3Schools](https://www.w3schools.com) is a great resource for learning HTML.
 
@@ -102,6 +103,7 @@ Like in most other script/programming languages, there can be hidden comments in
 Example: `<!-- This is a comment. It will not be visible when the webpage is displayed in a browser. -->`
 
 ## HTML Attributes
+
 HTML attributes provide additional information about HTML elements. All elements can have none or multiple attributes. Attributes are included in the starting tag and come as name-value-pairs (attributename="attributevalue"). 
 
 Example: `<title attribute="x"> Title </title>`
@@ -113,24 +115,24 @@ We often need to use attributes to specify what exactly we want to scrape, so we
 
 **Links**
 
-Hyperlinks are a common element on website: Linking to other websites is one of the core features of the web. Text content is turned into a link with the `<a>` tag (*anchor*), and the link address is specified as `href` attribute (*hyperreference*).
+Hyperlinks are common elements on websites: Linking to other websites is one of the core features of the world wide web. Text content is turned into a link with the `<a>` tag (*anchor*), and the link address is specified as `href` attribute (*hyperreference*).
 
-Example: `This is text <a href="https://www.scrapethissite.com/pages/simple/">with a link</a>.`
+Example: `This is text <a href="https://www.scrapethissite.com/pages/simple/">with a link to scrapethissite.com</a>.`
 
 **IDs**
 
-IDs are a special attribute used to specify a unique identifier for an HTML element. The value of the id attribute must be unique within the HTML document. 
+IDs are a special attribute used to specify a unique identifier for an HTML element. The value of the ID attribute must be unique within the HTML document. 
 
 Example: `<p id="instructornameparagraph">Nicole Schwitter<\p>`
 
 **Classes**
 
-Classes are another special case of attributes used to specify a class for an HTML element. Multiple HTML elements can share the same class. We often encounter classes because they are frequently used for consistent formatting of similar content. 
+Classes are another special case of attributes. They are similar to IDs, but they are used to specify a class for an HTML element and multiple HTML elements can share the same class. We often encounter classes because they are frequently used for consistent formatting of similar content. 
 
 Example: `<div class="container">This is the text within the div of class container.</div> `
 
 
-## How do we select the elements we want? CSS selectors and XPath
+## How do we select the elements we want? CSS Selectors and XPath
 
 Why do tags and attributes matter? We use them to access specific elements! In many cases, we might want to extract all links on a webpage, or all paragraphs, or all elements with a specific class, or the one element with a specific ID. There are two main ways to select elements: CSS selectors and XPath. We will mostly cover and use CSS selectors in this workshop. 
 
@@ -160,19 +162,19 @@ CSS selectors are a *pattern-description*. In their most basic form, selectors w
   - Matches an element containing a given attribute (with a given value). 
   - Attribute selectors can become more complex when you want to add additional restrictions. For example, you can also only match elements with an attribute starting with a given value, containing a given value, or ending with a given value.
 
-CSS selectors can be further specified when they are combined. For example, you can select all elements A inside elements B by specifying `elementA elementB`. Selecting all elements A and all elements B is done by specifying `elementA, elementB`. For a list of CSS Selectors, check out [this collection](https://www.w3schools.com/cssref/css_selectors.asp) and if you want to practice CSS Selectors in a fun way, play [CSS Diner](https://flukeout.github.io/).
+CSS selectors can be further specified when they are combined. For example, you can select all elements A inside elements B by specifying `elementA elementB`. Selecting all elements A and all elements B is done by specifying `elementA, elementB`. This makes sense when you, for example, want to select all items from a specific list. For a list of CSS Selectors, check out [this collection](https://www.w3schools.com/cssref/css_selectors.asp) and if you want to practice CSS Selectors in a fun way, play [CSS Diner](https://flukeout.github.io/).
 
 
 ### CSS Selectors in practice: Selector Gadget
+
 Understanding HTML helps when scraping the web, but there are tools to make our life easier. We can skim through the raw HTML source code of a website looking for possible tags and attributes (and sometimes, that is what we need to do), but ***SelectorGadget*** is a very useful tool to start with. It is an open source JavaScript bookmarklet that allows you to interactively figure out what CSS selector you need to extract part of the page.
 
 Check out its [webpage](https://selectorgadget.com/). [If you use Chrome, you can just install SelectorGadget in your browser and use SelectorGadget as a browser extension](https://chrome.google.com/webstore/detail/selectorgadget/mhjhnkcfbdhnjickkkdbjoemdmbfginb). If you use a different browser, drag this link into your [bookmark bar and click on it when needed](javascript:(function(){var%20s=document.createElement('div');s.innerHTML='Loading...';s.style.color='black';s.style.padding='20px';s.style.position='fixed';s.style.zIndex='9999';s.style.fontSize='3.0em';s.style.border='2px%20solid%20black';s.style.right='40px';s.style.top='40px';s.setAttribute('class','selector_gadget_loading');s.style.background='white';document.body.appendChild(s);s=document.createElement('script');s.setAttribute('type','text/javascript');s.setAttribute('src','https://dv0akt2986vzh.cloudfront.net/unstable/lib/selectorgadget.js');document.body.appendChild(s);})();).
 
-To use SelectorGadget, you click on the element that you want to select and iteratively select and de-select elements. SelectorGadget will make a guess at what CSS Selector you might want. If you want to get an impression of XPath, click on the *XPath* button of SelectorGadget to see the corresponding XPath to a CSS selector. 
+To use SelectorGadget, you click on the element that you want to select and iteratively select and de-select elements. SelectorGadget will make a guess at what CSS selector you might want. If you want to get an impression of XPath, click on the *XPath* button of SelectorGadget to see the corresponding XPath to a CSS selector. 
 
 
 Let's try it out! First, we will look at the source code of some websites:
-
 
 1. https://www.spacejam.com/1996/
 2. https://en.wikipedia.org/wiki/University_of_Warwick

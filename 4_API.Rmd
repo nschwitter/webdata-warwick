@@ -43,7 +43,6 @@ The API endpoint for the English Wikipedia is `https://en.wikipedia.org/w/api.ph
 endpoint <- "https://en.wikipedia.org/w/api.php"
 ```
 
-
 In the following, we want to retrieve some information about countries again. First, we need a list of countries. We get this list from the sample website we used previously in our very first exercise. Just re-run the following line:
 
 ```{r}
@@ -65,7 +64,7 @@ The documentation already tells us what a call should look like. We will try to 
 response <- GET(paste0(endpoint, "?format=json&action=parse&page=Andorra&prop=text&formatversion=2"))
 ```
 
-Why does this call work? It works because the page title of the article about Andorra is actually also called "Andorra". 
+We get a response to our call which includes lots of information. Why does this call work? It works because the page title of the article about Andorra is actually also called "Andorra". 
 
 The response includes a lot of information that we do not need if we are just interested in Andorra. We do not need to know what cookies were used or the specific type of request we sent. We are only interested in the content of the webpage, so this is what we extract in the following chunk. 
 
@@ -81,7 +80,7 @@ countrydata<- rawToChar(response$content)
 glimpse(countrydata)
 ```
 
-Better! But still, this is not exactly a great format. As we have requested the API to send as data in the JSON format, we can now convert the response into an R object using `fromJSON()` from the `jsonlite` package. This call will create a list. An easier object to work with is a data frame, so we will transform the list to a data frame using `as.data.frame()`.
+Better! But still, this is not exactly a great format. As we have requested the API to send us data in the JSON format, we can now convert the response into an R object using `fromJSON()` from the `jsonlite` package. This call will create a list. An easier object to work with is a data frame, so we will transform the list to a data frame using `as.data.frame()`.
 
 ```{r}
 countrydata <- as.data.frame(fromJSON(rawToChar(response$content)))
@@ -97,10 +96,10 @@ This text offers a familiar view: It is HTML source code. We can get back to `rv
 
 ```{r}
 textandorra <- read_html(countrydata$parse.text)
-anthem <- html_text(html_nodes(textandorra, ".anthem a"))
+anthem <- html_text(html_nodes(textandorra, ".anthem a"))[1]
 ```
 
-We now retrieved the anthem for Andorra. Again, we could write a loop to go through all countries, specifying different values of `page`. However, asking an API for the HTML of the site is not its real strength. Its real strength relies in answering us with specific data we ask it for, for example specific (invisible) page properties. 
+We now retrieved the anthem for Andorra. Again, we could write a loop to go through all countries, specifying different values of `page`. However, asking an API for the HTML of the site is not its real strength. Its real strength lies in answering us with specific data we ask it for, for example specific (invisible) page properties. 
 
 For example, we could look up which Wikipedians have contributed to the article "Andorra". We will request the property contributors in our call (`prop=contributors`). We request and receive JSON data and transform this to a data frame. We can request between 1 and 500 contributors per call (`pclimit`). If we want to collect more/all contributors, we will need to make further calls (specifying the `pccontinue` parameter).
 
@@ -110,7 +109,7 @@ andorracontrib <- as.data.frame(fromJSON(rawToChar(response$content)))
 #View(andorracontrib)
 ```
 
-We receive the name of 500 users who have contributed to the article about Andorra on the English speaking Wikipedia. We could continue and collect the contributors of other country pages and find out whether country articles become longer if more people contribute, or if information on such pages is better cited if more people contribute, or whether it is a specific group of editors which work on country articles. We could also collect the contributors about Andorra in other language versions of Wikipedia by specifying a different endpoint URL and see whether the same users contribute to the article in different languages.
+We receive the name of 500 users who have contributed to the article about Andorra on the English speaking Wikipedia. We could continue and collect the contributors of other country pages and find out whether country articles become longer if more people contribute, or if information on such pages is better cited if more people contribute, or whether it is a specific group of editors which work on country articles. We could also collect the contributors of the article on Andorra in other language versions of Wikipedia by specifying a different endpoint URL and see whether the same users contribute to the article in different languages, i.e. whether there a cross-language Andorra experts.
 
 We can also easily look up all Wikipedia articles with "Andorra" in their title or in their text. We will use the search module documented on [API:Search](https://www.mediawiki.org/wiki/Special:MyLanguage/API:Search). We only want to look up articles with "Andorra" in their title. We specify this using the `srsearch` parameter, passing the value `intitle:Andorra`. Again, we are restricted by a search limit (`srlimit`) which can range from 1 to 500. We limit our results to 20 to keep the load low. When more results are available, we can specify the `sroffset` parameter to receive more results. 
 
@@ -133,18 +132,19 @@ View(searchresults2)
 We can then bind these data frames together. 
 
 ```{r}
-searchresults_andorra <- rbind(searchresults, searchresults2)
+searchresults_andorra <- plyr::rbind.fill(searchresults, searchresults2)
 View(searchresults_andorra)
 ```
 
 If you are limited by the number of results you can retrieve per call, you can generally make multiple calls retrieving different information and then stacking it together. You might need to respect waiting times between making different calls. 
 
-We have collected 40 Wikipedia articles with "Andorra" in the page title in the English Wikipedia. We also know how many word each articles contain. We could repeat this for our list of countries, collecting all articles to then find out how strongly represented different countries are on Wikipedia (and find out whether this depends for example on language spoken, on population size, on GDP, etc.).
+We have collected 40 Wikipedia articles with "Andorra" in the page title in the English Wikipedia. We also know how many words each article contains. We could repeat this for our list of countries, collecting all articles to then find out how strongly represented different countries are on Wikipedia (and find out whether this depends for example on language spoken, on population size, on GDP, etc.).
 
-Working with APIs can be a bit intimidating, and each API is different. Your best friend is their documentation. Heads-up: These can also be intimidating. They are generally not written for social scientists wanting to collect data for research purposes. For many APIs, user-friendly wrapper packages exist, so it helps to have a look at them when you start working with a new API. 
+Working with APIs can be a bit intimidating and each API is different. Your best friend is their documentation. Heads-up: These can also be intimidating. They are generally not written for social scientists wanting to collect data for research purposes. For many APIs, user-friendly wrapper packages exist, so it helps to have a look at them when you start working with a new API. 
 
 
 # API Exercises
+
 1. Collect 1000 contributors of the pages about the 1996 SpaceJam movie and all contributors of the new 2021 SpaceJam movie. Are these the same users?
 2. Collect any [another property](https://www.mediawiki.org/wiki/API:Properties) from the Wikipedia page about Andorra. 
 
