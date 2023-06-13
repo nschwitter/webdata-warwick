@@ -1,5 +1,5 @@
 ---
-title: "Advanced Web Scraping"
+title: "Advanced Web Scraping (with solutions)"
 author: Nicole Schwitter
 date: "`r Sys.Date()`"
 output: 
@@ -195,7 +195,7 @@ Collecting data from multiple pages can often become a little bit like detective
 In any case, we need to inspect the URL structure of pages and subpages. Finding this regularity is an important skill. For example, how would you go about...
 
 1. ... collecting [White House Briefing Statements](https://www.whitehouse.gov/briefings-statements/)?
-2. ... collecting [Tesco Cheddar Cheese](https://www.tesco.com/groceries/en-GB/shop/fresh-food/cheese/cheddar-cheese)? Extra: Cheddar Cheese of the brand *Tesco Finest*? 
+2. ... collecting [Tesco Cheddar Cheese](https://www.tesco.com/groceries/en-GB/shop/fresh-food/cheese/cheddar-cheese)? Extra: Cheddar Cheese of the brand *Tesco organic*? 
 
 Sometimes, the URLs do not change. Sometimes, there is no logic, but there is a dynamic. We will deal with this later. 
 
@@ -205,7 +205,32 @@ Now, let us move back to coding. We stick with our [list of countries](https://e
 1. Collect the URL to all subregions.
 2. Make sure each URL is only once in your list - have a look at the function `unique()`.
 3. Follow the URL to all subregions.
-4. Extract the paragraphs of the Wikipedia articles.
+4. Extract the paragraphs of the Wikipedia articles. 
+
+```{r, warning=FALSE}
+#SOLUTION
+url <- "https://en.wikipedia.org/wiki/List_of_countries_by_population_(United_Nations)"
+countries_website <- read_html(url)
+
+href_subregion <- html_attr(html_elements(countries_website, "td:nth-child(3) a"), "href")
+href_subregion
+href_subregion <- unique(href_subregion)
+
+baseurl <- "https://en.wikipedia.org"
+allurls<-paste0(baseurl,href_subregion)
+
+head(allurls)
+allurls <- unique(allurls)
+
+content <- character(0)
+
+for(i in 1:length(allurls)){
+  page <- read_html(allurls[i])
+  content[i] <- html_text(html_elements(page, "p"))
+}
+content
+
+```
 
 
 #Dynamic Pages and RSelenium
@@ -272,4 +297,3 @@ reviews_all <- trimws(reviews_all)
 ```
 
 There you go - we collected all reviews!
-
